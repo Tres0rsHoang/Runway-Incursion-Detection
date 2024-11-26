@@ -68,6 +68,7 @@ const AirportRunway: React.FC = () => {
   const calPlaneStatus = (plane: Plane): string => {
     var inTaxiWay = 0
     var inRunWay = false
+
     for (const [i, taxiWay] of taxiWays.entries()) {
       if (plane.x >= taxiWay.xMin && plane.x <= taxiWay.xMax && plane.y >= taxiWay.yMin && plane.y <= taxiWay.yMax) {
         inTaxiWay = i + 1
@@ -76,6 +77,10 @@ const AirportRunway: React.FC = () => {
 
     if (plane.x >= runWay.xMin && plane.x <= runWay.xMax) {
       inRunWay = true
+    }
+
+    if (inTaxiWay && plane.status == 'landing') {
+      return 'landing_in_taxi_way'
     }
 
     if (
@@ -236,11 +241,8 @@ const AirportRunway: React.FC = () => {
                   <span>Airplane {plane.id} </span>
                   {plane.status == 'undefined' && <span>(Undefined)</span>}
                   {plane.status == 'taking_off' && <span>(Taking off)</span>}
-                  {plane.status == 'landing' && <span>(Landing)</span>}
-                  {/* {plane.status == 'incursion_zone' && <span>(In Incursion Zone)</span>} */}
-                  {(plane.status == 'holding_taxi' || plane.status == 'holding_taxi_first') && (
-                    <span>(Holding taxi)</span>
-                  )}
+                  {plane.status.includes('landing') && <span>(Landing)</span>}
+                  {plane.status.includes('holding_taxi') && <span>(Holding taxi)</span>}
                 </div>
                 <div className='grid grid-cols-2 gap-4'>
                   <div>
