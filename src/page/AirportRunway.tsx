@@ -9,7 +9,6 @@ interface Plane {
   x: number
   y: number
   isValid: boolean
-  isUpdated: boolean
   status: string
 }
 
@@ -22,9 +21,10 @@ interface Way {
 
 const AirportRunway: React.FC = () => {
   const [planes, setPlanes] = useState<Plane[]>([
-    { id: 'A', x: 0, y: 0, isValid: false, isUpdated: false, status: 'undefined' },
-    { id: 'B', x: 0, y: 0, isValid: false, isUpdated: false, status: 'undefined' },
-    { id: 'C', x: 0, y: 0, isValid: false, isUpdated: false, status: 'undefined' }
+    { id: 'A', x: 0, y: 0, isValid: false, status: 'undefined' },
+    { id: 'B', x: 0, y: 0, isValid: false, status: 'undefined' },
+    { id: 'C', x: 0, y: 0, isValid: false, status: 'undefined' },
+    { id: 'D', x: 0, y: 0, isValid: false, status: 'undefined' }
   ])
 
   const [alert, setAlert] = useState<string>('')
@@ -54,11 +54,8 @@ const AirportRunway: React.FC = () => {
           [field]: intValue
         }
         updatedPlane.isValid = validatePosition(updatedPlane.x, updatedPlane.y)
-        updatedPlane.isUpdated = true
         updatedPlane.status = calPlaneStatus(updatedPlane)
         return updatedPlane
-      } else {
-        plane.isUpdated = false
       }
       return plane
     })
@@ -108,157 +105,95 @@ const AirportRunway: React.FC = () => {
     return 'undefined'
   }
 
-  function checkAirPlane(planes: Array<Plane>) {
-    var inIncursionZone = false
-    var currentPlane: Plane | undefined
-    for (var plane of planes) {
-      if (plane.isUpdated) {
-        currentPlane = plane
-      }
-    }
-    if (!currentPlane) return
-
-    var inRunWay = false
-    if (currentPlane.x >= runWay.xMin && currentPlane.x <= runWay.xMax) {
-      inRunWay = true
-    }
-
+  const inIncursionZone = (plane: Plane): boolean => {
     if (
-      currentPlane.x >= incursionZone.xMin &&
-      currentPlane.x <= incursionZone.xMax &&
-      currentPlane.y >= incursionZone.yMin &&
-      currentPlane.y <= incursionZone.yMax
+      plane.x >= incursionZone.xMin &&
+      plane.x <= incursionZone.xMax &&
+      plane.y >= incursionZone.yMin &&
+      plane.y <= incursionZone.yMax
     ) {
-      inIncursionZone = true
+      return true
     }
+    return false
+  }
 
-    var currentTakingOffPlane: Plane | undefined
-    var currentLandingPlane: Plane | undefined
-    var currentHoldingTaxiPlane: Plane | undefined
-
-    for (let plane of planes) {
-      if (plane.status == 'taking_off') {
-        currentTakingOffPlane = plane
-      }
-      if (plane.status == 'landing') {
-        currentLandingPlane = plane
-      }
-      if (plane.status.includes('holding_taxi')) {
-        currentHoldingTaxiPlane = plane
-      }
+  const inRunWay = (plane: Plane): boolean => {
+    if (plane.x >= runWay.xMin && plane.x <= runWay.xMax && plane.y >= runWay.yMin && plane.y <= runWay.yMax) {
+      return true
     }
+    return false
+  }
 
-    if (currentPlane.status.includes('holding_taxi') && inIncursionZone) {
-      if (currentTakingOffPlane != undefined) {
-        let inRunWayWithouIncursionZone = false
-        if (
-          currentTakingOffPlane.x >= runWay.xMin &&
-          currentTakingOffPlane.x <= runWay.xMax &&
-          currentTakingOffPlane.y >= runWay.yMin &&
-          currentTakingOffPlane.y <= runWay.yMax
-        ) {
-          inRunWayWithouIncursionZone = true
-        }
+  function checkAirPlane(planes: Array<Plane>) {
+    // Divine planes into 3 array with difference status
+    var currentPlaneInHoldingTaxi: Array<Plane> = planes.filter((value: Plane) => value.status.includes('holding_taxi'))
+    var currentPlaneInLanding: Array<Plane> = planes.filter((value: Plane) => value.status.includes('landing'))
+    var currentPlaneInTakeOff: Array<Plane> = planes.filter((value: Plane) => value.status.includes('taking_off'))
 
-        if (!inRunWayWithouIncursionZone) {
-          setAlert('')
-        } else if (currentTakingOffPlane.y > currentPlane.y) {
-          setAlert('RUNWAY TRAFFIC')
-        } else if (inRunWay) {
-          setAlert('RUNWAY CONFLICT')
-        } else if (!inRunWay) {
-          setAlert('RUNWAY TRAFFIC')
-        }
-      } else if (currentLandingPlane != undefined) {
-        let currentLandingPlaneInIncursionZone = false
-        if (
-          currentLandingPlane.x >= incursionZone.xMin &&
-          currentLandingPlane.x <= incursionZone.xMax &&
-          currentLandingPlane.y >= incursionZone.yMin &&
-          currentLandingPlane.y <= incursionZone.yMax
-        ) {
-          currentLandingPlaneInIncursionZone = true
-        }
-        console.log(currentLandingPlaneInIncursionZone)
-        if (currentLandingPlaneInIncursionZone) {
-          if (!inRunWay) {
-            setAlert('RUNWAY TRAFFIC')
-          } else if (currentLandingPlane.y > currentPlane.y) {
-            setAlert('RUNWAY TRAFFIC')
-          } else {
-            setAlert('RUNWAY CONFLICT')
-          }
-        }
-      }
-    } else if (currentPlane.status == 'taking_off') {
-      let inRunWayWithouIncursionZone = false
+    var alertResult = ''
+
+    // Loop for each plane in planes which is have holding taxi status
+    for (var plane of currentPlaneInHoldingTaxi) {
+      var planeAlertResult = ''
+      var incursionPlanes = ''
+
+      // Check current landing planes
       if (
-        currentPlane.x >= runWay.xMin &&
-        currentPlane.x <= runWay.xMax &&
-        currentPlane.y >= runWay.yMin &&
-        currentPlane.y <= runWay.yMax
+        inIncursionZone(plane) &&
+        currentPlaneInLanding.length != 0 &&
+        currentPlaneInLanding.some((landingPlane: Plane) => inIncursionZone(landingPlane))
       ) {
-        inRunWayWithouIncursionZone = true
+        incursionPlanes =
+          plane.id +
+          ', ' +
+          currentPlaneInLanding
+            .filter((element) => {
+              return inIncursionZone(element)
+            })
+            .map((element: Plane) => element.id)
+            .join(', ')
+
+        planeAlertResult = 'RUNWAY TRAFFIC'
+
+        if (inRunWay(plane) && currentPlaneInLanding.some((landingPlane: Plane) => landingPlane.y <= plane.y)) {
+          planeAlertResult = 'RUNWAY CONFLICT'
+        }
+        // Save new alert result for landing planes check
+        if (planeAlertResult != '') {
+          alertResult += `${planeAlertResult} (${incursionPlanes})`
+        }
       }
-      if (inRunWayWithouIncursionZone && currentHoldingTaxiPlane != undefined) {
-        let currentHoldingTaxiPlaneInIncursionZone = false
-        let currentHoldingTaxiPlaneInRunWay = false
 
-        if (
-          currentHoldingTaxiPlane.x >= incursionZone.xMin &&
-          currentHoldingTaxiPlane.x <= incursionZone.xMax &&
-          currentHoldingTaxiPlane.y >= incursionZone.yMin &&
-          currentHoldingTaxiPlane.y <= incursionZone.yMax
-        ) {
-          currentHoldingTaxiPlaneInIncursionZone = true
+      // Check current taking off planes
+      if (
+        inIncursionZone(plane) &&
+        currentPlaneInTakeOff.length != 0 &&
+        currentPlaneInTakeOff.some((takeOffPlane: Plane) => inRunWay(takeOffPlane))
+      ) {
+        incursionPlanes =
+          plane.id +
+          ', ' +
+          currentPlaneInTakeOff
+            .filter((element) => {
+              return inRunWay(element)
+            })
+            .map((element) => element.id)
+            .join(', ')
+        planeAlertResult = 'RUNWAY TRAFFIC'
+
+        if (inRunWay(plane) && currentPlaneInTakeOff.some((takeOffPlane: Plane) => takeOffPlane.y <= plane.y)) {
+          planeAlertResult = 'RUNWAY CONFLICT'
         }
 
-        if (currentHoldingTaxiPlane.x >= runWay.xMin && currentHoldingTaxiPlane.x <= runWay.xMax) {
-          currentHoldingTaxiPlaneInRunWay = true
+        // Save new alert result for taking off planes check
+        if (planeAlertResult != '') {
+          alertResult += `${planeAlertResult} (${incursionPlanes})\n`
         }
-
-        if (currentHoldingTaxiPlaneInRunWay) {
-          if (currentPlane.y > currentHoldingTaxiPlane.y) {
-            setAlert('RUNWAY TRAFFIC')
-          } else {
-            setAlert('RUNWAY CONFLICT')
-          }
-        } else if (currentHoldingTaxiPlaneInIncursionZone) {
-          setAlert('RUNWAY TRAFFIC')
-        }
-      } else {
-        setAlert('')
       }
-    } else if (currentPlane.status == 'landing') {
-      if (inIncursionZone && currentHoldingTaxiPlane != undefined) {
-        let currentHoldingTaxiPlaneInIncursionZone = false
-        let currentHoldingTaxiPlaneInRunWay = false
+    }
 
-        if (
-          currentHoldingTaxiPlane.x >= incursionZone.xMin &&
-          currentHoldingTaxiPlane.x <= incursionZone.xMax &&
-          currentHoldingTaxiPlane.y >= incursionZone.yMin &&
-          currentHoldingTaxiPlane.y <= incursionZone.yMax
-        ) {
-          currentHoldingTaxiPlaneInIncursionZone = true
-        }
-
-        if (currentHoldingTaxiPlane.x >= runWay.xMin && currentHoldingTaxiPlane.x <= runWay.xMax) {
-          currentHoldingTaxiPlaneInRunWay = true
-        }
-
-        if (currentHoldingTaxiPlaneInRunWay) {
-          if (currentPlane.y > currentHoldingTaxiPlane.y) {
-            setAlert('RUNWAY TRAFFIC')
-          } else {
-            setAlert('RUNWAY CONFLICT')
-          }
-        } else if (currentHoldingTaxiPlaneInIncursionZone) {
-          setAlert('RUNWAY TRAFFIC')
-        }
-      } else {
-        setAlert('')
-      }
+    if (alertResult != '') {
+      setAlert(alertResult)
     } else {
       setAlert('')
     }
