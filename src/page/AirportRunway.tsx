@@ -27,6 +27,8 @@ const AirportRunway: React.FC = () => {
     { id: 'C', x: 0, y: 0, isValid: false, isUpdated: false, status: 'undefined' }
   ])
 
+  const [alert, setAlert] = useState<string>('')
+
   const taxiWays: Array<Way> = [
     { xMin: 0, xMax: 44, yMin: 23, yMax: 23 },
     { xMin: 0, xMax: 44, yMin: 32, yMax: 32 },
@@ -36,8 +38,6 @@ const AirportRunway: React.FC = () => {
   const runWay: Way = { xMin: 45, yMin: 22, xMax: 54, yMax: 70 }
   const incursionZone: Way = { xMin: 31, yMin: 13, xMax: 70, yMax: 80 }
 
-  const [alert, setAlert] = useState<string>('')
-
   const validatePosition = (x: number, y: number): boolean => {
     const numX = x
     const numY = y
@@ -45,9 +45,9 @@ const AirportRunway: React.FC = () => {
   }
 
   const handlePositionChange = (id: string, field: 'x' | 'y', value: string) => {
-    const intValue = parseInt(value, 10)
+    const intValue: number = parseInt(value, 10)
 
-    const updatedPlanes = planes.map((plane) => {
+    const updatedPlanes = planes.map((plane: Plane) => {
       if (plane.id === id) {
         const updatedPlane = {
           ...plane,
@@ -150,7 +150,19 @@ const AirportRunway: React.FC = () => {
 
     if (currentPlane.status.includes('holding_taxi') && inIncursionZone) {
       if (currentTakingOffPlane != undefined) {
-        if (currentTakingOffPlane.y > currentPlane.y) {
+        let inRunWayWithouIncursionZone = false
+        if (
+          currentTakingOffPlane.x >= runWay.xMin &&
+          currentTakingOffPlane.x <= runWay.xMax &&
+          currentTakingOffPlane.y >= runWay.yMin &&
+          currentTakingOffPlane.y <= runWay.yMax
+        ) {
+          inRunWayWithouIncursionZone = true
+        }
+
+        if (!inRunWayWithouIncursionZone) {
+          setAlert('')
+        } else if (currentTakingOffPlane.y > currentPlane.y) {
           setAlert('RUNWAY TRAFFIC')
         } else if (inRunWay) {
           setAlert('RUNWAY CONFLICT')
@@ -179,9 +191,19 @@ const AirportRunway: React.FC = () => {
         }
       }
     } else if (currentPlane.status == 'landing' || currentPlane.status == 'taking_off') {
-      if (inIncursionZone && currentHoldingTaxiPlane != undefined) {
+      let inRunWayWithouIncursionZone = false
+      if (
+        currentPlane.x >= runWay.xMin &&
+        currentPlane.x <= runWay.xMax &&
+        currentPlane.y >= runWay.yMin &&
+        currentPlane.y <= runWay.yMax
+      ) {
+        inRunWayWithouIncursionZone = true
+      }
+      if (inRunWayWithouIncursionZone && currentHoldingTaxiPlane != undefined) {
         let currentHoldingTaxiPlaneInIncursionZone = false
         let currentHoldingTaxiPlaneInRunWay = false
+
         if (
           currentHoldingTaxiPlane.x >= incursionZone.xMin &&
           currentHoldingTaxiPlane.x <= incursionZone.xMax &&
@@ -190,9 +212,11 @@ const AirportRunway: React.FC = () => {
         ) {
           currentHoldingTaxiPlaneInIncursionZone = true
         }
+
         if (currentHoldingTaxiPlane.x >= runWay.xMin && currentHoldingTaxiPlane.x <= runWay.xMax) {
           currentHoldingTaxiPlaneInRunWay = true
         }
+
         if (currentHoldingTaxiPlaneInRunWay) {
           if (currentPlane.y > currentHoldingTaxiPlane.y) {
             setAlert('RUNWAY TRAFFIC')
@@ -242,7 +266,7 @@ const AirportRunway: React.FC = () => {
                   {plane.status == 'undefined' && <span>(Undefined)</span>}
                   {plane.status == 'taking_off' && <span>(Taking off)</span>}
                   {plane.status.includes('landing') && <span>(Landing)</span>}
-                  {plane.status.includes('holding_taxi') && <span>(Holding taxi)</span>}
+                  {plane.status.includes('holding_taxi') && <span>(Taxi)</span>}
                 </div>
                 <div className='grid grid-cols-2 gap-4'>
                   <div>
