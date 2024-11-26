@@ -36,7 +36,7 @@ const AirportRunway: React.FC = () => {
     { xMin: 0, xMax: 44, yMin: 69, yMax: 69 }
   ]
   const runWay: Way = { xMin: 45, yMin: 22, xMax: 54, yMax: 70 }
-  const incursionZone: Way = { xMin: 31, yMin: 13, xMax: 70, yMax: 80 }
+  const incursionZone: Way = { xMin: 31, yMin: 12, xMax: 68, yMax: 80 }
 
   const validatePosition = (x: number, y: number): boolean => {
     const numX = x
