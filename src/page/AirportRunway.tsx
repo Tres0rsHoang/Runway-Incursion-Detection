@@ -190,7 +190,7 @@ const AirportRunway: React.FC = () => {
           }
         }
       }
-    } else if (currentPlane.status == 'landing' || currentPlane.status == 'taking_off') {
+    } else if (currentPlane.status == 'taking_off') {
       let inRunWayWithouIncursionZone = false
       if (
         currentPlane.x >= runWay.xMin &&
@@ -201,6 +201,36 @@ const AirportRunway: React.FC = () => {
         inRunWayWithouIncursionZone = true
       }
       if (inRunWayWithouIncursionZone && currentHoldingTaxiPlane != undefined) {
+        let currentHoldingTaxiPlaneInIncursionZone = false
+        let currentHoldingTaxiPlaneInRunWay = false
+
+        if (
+          currentHoldingTaxiPlane.x >= incursionZone.xMin &&
+          currentHoldingTaxiPlane.x <= incursionZone.xMax &&
+          currentHoldingTaxiPlane.y >= incursionZone.yMin &&
+          currentHoldingTaxiPlane.y <= incursionZone.yMax
+        ) {
+          currentHoldingTaxiPlaneInIncursionZone = true
+        }
+
+        if (currentHoldingTaxiPlane.x >= runWay.xMin && currentHoldingTaxiPlane.x <= runWay.xMax) {
+          currentHoldingTaxiPlaneInRunWay = true
+        }
+
+        if (currentHoldingTaxiPlaneInRunWay) {
+          if (currentPlane.y > currentHoldingTaxiPlane.y) {
+            setAlert('RUNWAY TRAFFIC')
+          } else {
+            setAlert('RUNWAY CONFLICT')
+          }
+        } else if (currentHoldingTaxiPlaneInIncursionZone) {
+          setAlert('RUNWAY TRAFFIC')
+        }
+      } else {
+        setAlert('')
+      }
+    } else if (currentPlane.status == 'landing') {
+      if (inIncursionZone && currentHoldingTaxiPlane != undefined) {
         let currentHoldingTaxiPlaneInIncursionZone = false
         let currentHoldingTaxiPlaneInRunWay = false
 
